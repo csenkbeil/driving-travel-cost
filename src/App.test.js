@@ -37,11 +37,11 @@ describe('App', () => {
     expect(screen.getByText('Advanced what-if')).toBeInTheDocument();
     expect(screen.getByRole('switch', { name: /switch to light mode/i })).toBeInTheDocument();
     expect(screen.queryByText('Fuel price what-if')).not.toBeInTheDocument();
-    expect(screen.getAllByText('$63.55').length).toBeGreaterThan(0);
-    expect(screen.getByText('30.6 L')).toBeInTheDocument();
+    expect(screen.getAllByText('$6.69').length).toBeGreaterThan(0);
+    expect(screen.getByText('3.0 L')).toBeInTheDocument();
     expect(screen.getByText('Fuel used')).toBeInTheDocument();
 
-    expect(screen.getByLabelText('Driving distance (km)')).toHaveAttribute(
+    expect(screen.getByLabelText('One-way driving distance (km)')).toHaveAttribute(
       'max',
       String(INPUT_LIMITS.distance)
     );
@@ -72,10 +72,9 @@ describe('App', () => {
   it('updates the baseline estimate and reveals advanced what-if tools on demand', async () => {
     render(App);
 
-    const distanceInput = screen.getByLabelText('Driving distance (km)');
+    const distanceInput = screen.getByLabelText('One-way driving distance (km)');
     const priceInput = screen.getByLabelText('Current fuel price ($ / litre)');
     const efficiencyToggle = screen.getByRole('button', { name: 'Kilometres per litre' });
-    const efficiencyInput = screen.getByLabelText('Fuel efficiency (L / 100 km)');
     const advancedToggle = screen.getByRole('button', { name: /Explore a different fuel scenario/i });
 
     await fireEvent.input(distanceInput, { target: { value: '300' } });
@@ -107,7 +106,7 @@ describe('App', () => {
   it('clamps overly large input values to the practical limits', async () => {
     render(App);
 
-    const distanceInput = screen.getByLabelText('Driving distance (km)');
+    const distanceInput = screen.getByLabelText('One-way driving distance (km)');
     const fuelPriceInput = screen.getByLabelText('Current fuel price ($ / litre)');
     const fuelEfficiencyInput = screen.getByLabelText('Fuel efficiency (L / 100 km)');
 
@@ -194,8 +193,8 @@ describe('App', () => {
     await fireEvent.click(advancedToggle);
 
     expect(screen.getByText('Estimated trip fuel cost')).toBeInTheDocument();
-    expect(screen.getAllByText('$31.77').length).toBeGreaterThan(0);
-    expect(screen.getByText(/Current \$31.77 -> What-if \$31.77/)).toBeInTheDocument();
+    expect(screen.getAllByText('$3.34').length).toBeGreaterThan(0);
+    expect(screen.getByText(/Current \$3.34 -> What-if \$3.34/)).toBeInTheDocument();
     expect(screen.getByText(/Fuel use changes by 0.0 L/)).toBeInTheDocument();
   });
 });

@@ -1,6 +1,10 @@
 FROM nginx:alpine
 
-COPY nginx.conf /etc/nginx/conf.d/default.conf
+ENV BASE_PATH=/
+
+COPY docker-entrypoint.d/40-configure-base-path.sh /docker-entrypoint.d/40-configure-base-path.sh
+RUN chmod +x /docker-entrypoint.d/40-configure-base-path.sh
+
 COPY dist /usr/share/nginx/html
 
 EXPOSE 80

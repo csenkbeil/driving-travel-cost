@@ -48,9 +48,40 @@ npm run build
 
 Deploy the generated `dist/` folder to any static hosting provider.
 
+### Optional base path
+
+The app supports an optional `BASE_PATH` environment variable for subpath hosting.
+
+- Leave `BASE_PATH` unset to build for root hosting at `/`
+- Set `BASE_PATH=/driving-travel-cost` to build for `/driving-travel-cost/`
+
+The value is normalized automatically:
+
+- empty or unset -> `/`
+- `/` -> `/`
+- `/driving-travel-cost` -> `/driving-travel-cost/`
+
+Examples:
+
+```bash
+npm run build
+BASE_PATH=/driving-travel-cost npm run build
+```
+
+PowerShell:
+
+```powershell
+npm run build
+$env:BASE_PATH = '/driving-travel-cost'
+npm run build
+Remove-Item Env:BASE_PATH
+```
+
 ## Docker
 
-Build and run the app with Alpine-based Node and Nginx:
+The container reads the resolved base path from the generated build output, so the Docker image serves the same path that Vite built for.
+
+Build and run the app at the root path:
 
 ```bash
 npm run build
@@ -60,26 +91,33 @@ docker run --rm -p 8080:80 driving-travel-cost
 
 Then open `http://localhost:8080`.
 
+Build and run the app under `/driving-travel-cost/`:
+
+```bash
+BASE_PATH=/driving-travel-cost npm run build
+docker build -t driving-travel-cost .
+docker run --rm -p 8080:80 driving-travel-cost
+```
+
+Then open `http://localhost:8080/driving-travel-cost/`.
+
 ## Deploy to GitHub Pages
 
 This app can be deployed to GitHub Pages as a static Vite site.
 
 ### 1. Set the Vite base path
 
-For a project site hosted at `https://<your-user-name>.github.io/DrivingTravelCost/`, update [vite.config.js](c:\Users\cliff\Development\DrivingTravelCost\vite.config.js) so the exported config includes:
+For a project site hosted at `https://<your-user-name>.github.io/DrivingTravelCost/`, build with:
 
-```js
-export default defineConfig({
-  base: '/DrivingTravelCost/',
-  plugins: [svelte(), svelteTesting()],
-  test: {
-    environment: 'jsdom',
-    setupFiles: './src/test/setup.js'
-  }
-});
+```bash
+BASE_PATH=/DrivingTravelCost npm run build
 ```
 
-If you are deploying to a user or organization site such as `https://<your-user-name>.github.io/`, use `base: '/'` instead.
+If you are deploying to a user or organization site such as `https://<your-user-name>.github.io/`, build with the default root path instead:
+
+```bash
+npm run build
+```
 
 ### 2. Add a GitHub Actions workflow
 
@@ -119,7 +157,7 @@ jobs:
         run: npm ci
 
       - name: Build app
-        run: npm run build
+        run: BASE_PATH=/DrivingTravelCost npm run build
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
