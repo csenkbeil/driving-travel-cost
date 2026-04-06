@@ -1,9 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import {
+  clampBoundedNumber,
   buildChartData,
   buildWhatIfSummary,
+  getFuelEfficiencyLimit,
+  INPUT_LIMITS,
   calculateTripCost,
-  clampPositiveNumber
+  clampPositiveNumber,
+  normalizeBoundedInput
 } from './costCalculator.js';
 
 describe('clampPositiveNumber', () => {
@@ -46,6 +50,62 @@ describe('calculateTripCost', () => {
     expect(result.litresPer100km).toBeCloseTo(6.6666667, 6);
     expect(result.litresNeeded).toBeCloseTo(20, 6);
     expect(result.totalCost).toBeCloseTo(38, 6);
+  });
+
+  it('clamps oversized distance, fuel price, and efficiency values', () => {
+    const result = calculateTripCost({
+      distance: 999999,
+      fuelPrice: 99,
+      fuelEfficiency: 99,
+      efficiencyMode: 'lPer100km',
+      includeReturnTrip: true
+    });
+
+    expect(result.safeDistance).toBe(INPUT_LIMITS.distance);
+    expect(result.safeFuelPrice).toBe(INPUT_LIMITS.fuelPrice);
+    expect(result.safeFuelEfficiency).toBe(INPUT_LIMITS.fuelEfficiency.lPer100km);
+  });
+
+  it('uses the km per litre cap when that mode is selected', () => {
+    const result = calculateTripCost({
+      distance: 200,
+      fuelPrice: 2,
+      fuelEfficiency: 99,
+      efficiencyMode: 'kmPerLitre',
+      includeReturnTrip: false
+    });
+
+    expect(result.safeFuelEfficiency).toBe(INPUT_LIMITS.fuelEfficiency.kmPerLitre);
+  });
+});
+
+describe('clampBoundedNumber', () => {
+  it('caps valid numbers at the provided maximum', () => {
+    expect(clampBoundedNumber(12, 10)).toBe(10);
+    expect(clampBoundedNumber(8, 10)).toBe(8);
+  });
+});
+
+describe('normalizeBoundedInput', () => {
+  it('returns the capped value and a clamp flag when a value exceeds the max', () => {
+    expect(normalizeBoundedInput(12, 10)).toEqual({
+      value: 10,
+      wasClamped: true
+    });
+  });
+
+  it('normalizes invalid values to zero without showing a max warning', () => {
+    expect(normalizeBoundedInput('', 10)).toEqual({
+      value: 0,
+      wasClamped: false
+    });
+  });
+});
+
+describe('getFuelEfficiencyLimit', () => {
+  it('returns the correct cap for each efficiency mode', () => {
+    expect(getFuelEfficiencyLimit('lPer100km')).toBe(INPUT_LIMITS.fuelEfficiency.lPer100km);
+    expect(getFuelEfficiencyLimit('kmPerLitre')).toBe(INPUT_LIMITS.fuelEfficiency.kmPerLitre);
   });
 });
 

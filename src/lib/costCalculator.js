@@ -1,6 +1,39 @@
+export const INPUT_LIMITS = {
+  distance: 5000,
+  fuelPrice: 10,
+  fuelEfficiency: {
+    lPer100km: 30,
+    kmPerLitre: 50
+  }
+};
+
 export function clampPositiveNumber(value) {
   const parsed = Number(value);
   return Number.isFinite(parsed) && parsed > 0 ? parsed : 0;
+}
+
+export function clampBoundedNumber(value, max) {
+  return Math.min(clampPositiveNumber(value), max);
+}
+
+export function getFuelEfficiencyLimit(efficiencyMode) {
+  return INPUT_LIMITS.fuelEfficiency[efficiencyMode] ?? INPUT_LIMITS.fuelEfficiency.lPer100km;
+}
+
+export function normalizeBoundedInput(value, max) {
+  const parsed = Number(value);
+
+  if (!Number.isFinite(parsed) || parsed <= 0) {
+    return {
+      value: 0,
+      wasClamped: false
+    };
+  }
+
+  return {
+    value: Math.min(parsed, max),
+    wasClamped: parsed > max
+  };
 }
 
 export function calculateTripCost({
@@ -10,9 +43,10 @@ export function calculateTripCost({
   efficiencyMode,
   includeReturnTrip
 }) {
-  const safeDistance = clampPositiveNumber(distance);
-  const safeFuelPrice = clampPositiveNumber(fuelPrice);
-  const safeFuelEfficiency = clampPositiveNumber(fuelEfficiency);
+  const safeDistance = clampBoundedNumber(distance, INPUT_LIMITS.distance);
+  const safeFuelPrice = clampBoundedNumber(fuelPrice, INPUT_LIMITS.fuelPrice);
+  const efficiencyLimit = getFuelEfficiencyLimit(efficiencyMode);
+  const safeFuelEfficiency = clampBoundedNumber(fuelEfficiency, efficiencyLimit);
   const litresPer100km =
     efficiencyMode === 'kmPerLitre' && safeFuelEfficiency > 0
       ? 100 / safeFuelEfficiency

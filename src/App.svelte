@@ -2,7 +2,14 @@
   import { onMount } from 'svelte';
   import { format } from 'd3-format';
   import { scaleLinear } from 'd3-scale';
-  import { buildChartData, buildWhatIfSummary, calculateTripCost } from './lib/costCalculator.js';
+  import {
+    buildChartData,
+    buildWhatIfSummary,
+    calculateTripCost,
+    getFuelEfficiencyLimit,
+    INPUT_LIMITS,
+    normalizeBoundedInput
+  } from './lib/costCalculator.js';
 
   const currency = format(',.2f');
   const number = format(',.1f');
@@ -27,6 +34,60 @@
   let costScale;
   let theme = 'dark';
   let hasStoredThemePreference = false;
+  let limitReached = {
+    distance: false,
+    fuelPrice: false,
+    fuelEfficiency: false
+  };
+
+  function updateLimitReached(field, wasClamped) {
+    limitReached = {
+      ...limitReached,
+      [field]: wasClamped
+    };
+  }
+
+  function applyBoundedValue(field, rawValue, max) {
+    const { value, wasClamped } = normalizeBoundedInput(rawValue, max);
+
+    if (field === 'distance') {
+      distance = value;
+    }
+
+    if (field === 'fuelPrice') {
+      fuelPrice = value;
+    }
+
+    if (field === 'fuelEfficiency') {
+      fuelEfficiency = value;
+    }
+
+    updateLimitReached(field, wasClamped);
+  }
+
+  function handleDistanceInput(event) {
+    applyBoundedValue('distance', event.currentTarget.value, INPUT_LIMITS.distance);
+  }
+
+  function handleFuelPriceInput(event) {
+    applyBoundedValue('fuelPrice', event.currentTarget.value, INPUT_LIMITS.fuelPrice);
+  }
+
+  function handleFuelEfficiencyInput(event) {
+    applyBoundedValue('fuelEfficiency', event.currentTarget.value, getFuelEfficiencyLimit(efficiencyMode));
+  }
+
+  function setEfficiencyMode(nextMode) {
+    efficiencyMode = nextMode;
+
+    const { value, wasClamped } = normalizeBoundedInput(
+      fuelEfficiency,
+      getFuelEfficiencyLimit(nextMode)
+    );
+
+    fuelEfficiency = value;
+    updateLimitReached('fuelEfficiency', wasClamped);
+  }
 
   function applyTheme(nextTheme) {
     theme = nextTheme;
@@ -98,6 +159,11 @@
   $: whatIfSummary = buildWhatIfSummary({ includeReturnTrip, currentCase, whatIfCase });
   $: maxCost = Math.max(...chartData.map((item) => item.value), 1);
   $: costScale = scaleLinear().domain([0, maxCost]).range([0, 100]);
+  $: fuelEfficiencyLimit = getFuelEfficiencyLimit(efficiencyMode);
+  $: fuelEfficiencyLimitText =
+    efficiencyMode === 'lPer100km'
+      ? `Maximum fuel efficiency is ${number(fuelEfficiencyLimit)} L / 100 km.`
+      : `Maximum fuel efficiency is ${number(fuelEfficiencyLimit)} km / litre.`;
 </script>
 
 <svelte:head>
@@ -126,32 +192,15 @@
       </div>
       <h1>Work out your driving cost in a few quick steps.</h1>
       <p class="intro">
-        Enter your trip distance, fuel price, and vehicle efficiency to get one clear estimate fast.
-        If you want to explore alternatives, open the advanced what-if section after you have your
-        baseline result.
+        Enter three trip details and get one clear estimate straight away. The optional what-if
+        tools stay tucked away until you need them.
       </p>
     </div>
 
-    <div class="trip-card">
-      <div class="trip-card__header">
-        <p>Your estimate</p>
-        <strong>{includeReturnTrip ? 'Return-trip total' : 'Trip total'}</strong>
-      </div>
-
-      <dl class="trip-stats">
-        <div>
-          <dt>Total cost</dt>
-          <dd>${currency(currentCase.totalCost)}</dd>
-        </div>
-        <div>
-          <dt>Fuel needed</dt>
-          <dd>{number(currentCase.totalLitres)} L</dd>
-        </div>
-        <div>
-          <dt>Cost per 100 km</dt>
-          <dd>${currency(currentCase.costPer100Km)}</dd>
-        </div>
-      </dl>
+    <div class="trip-card trip-card--compact">
+      <p class="trip-card__eyebrow">Quick guide</p>
+      <strong>Best for everyday trips, road planning, and fuel budgeting.</strong>
+      <span>Values are capped to keep the calculator realistic and easy to use.</span>
     </div>
   </section>
 
@@ -166,14 +215,40 @@
       </div>
 
       <div class="form-grid">
-        <label>
+        <label class:field-capped={limitReached.distance}>
           <span>Driving distance (km)</span>
-          <input bind:value={distance} type="number" min="0" step="1" />
+          <input
+            value={distance}
+            type="number"
+            min="0"
+            max={INPUT_LIMITS.distance}
+            step="1"
+            aria-describedby={limitReached.distance ? 'distance-limit-message' : undefined}
+            on:input={handleDistanceInput}
+          />
+          {#if limitReached.distance}
+            <small id="distance-limit-message" class="field-feedback">
+              Maximum distance is 5,000 km.
+            </small>
+          {/if}
         </label>
 
-        <label>
+        <label class:field-capped={limitReached.fuelPrice}>
           <span>Current fuel price ($ / litre)</span>
-          <input bind:value={fuelPrice} type="number" min="0" step="0.01" />
+          <input
+            value={fuelPrice}
+            type="number"
+            min="0"
+            max={INPUT_LIMITS.fuelPrice}
+            step="0.01"
+            aria-describedby={limitReached.fuelPrice ? 'fuel-price-limit-message' : undefined}
+            on:input={handleFuelPriceInput}
+          />
+          {#if limitReached.fuelPrice}
+            <small id="fuel-price-limit-message" class="field-feedback">
+              Maximum fuel price is $10.00 per litre.
+            </small>
+          {/if}
         </label>
       </div>
 
@@ -186,26 +261,39 @@
         <button
           type="button"
           class:active={efficiencyMode === 'lPer100km'}
-          on:click={() => (efficiencyMode = 'lPer100km')}
+          on:click={() => setEfficiencyMode('lPer100km')}
         >
           Litres per 100 km
         </button>
         <button
           type="button"
           class:active={efficiencyMode === 'kmPerLitre'}
-          on:click={() => (efficiencyMode = 'kmPerLitre')}
+          on:click={() => setEfficiencyMode('kmPerLitre')}
         >
           Kilometres per litre
         </button>
       </div>
 
-      <label class="wide-field">
+      <label class="wide-field" class:field-capped={limitReached.fuelEfficiency}>
         <span>
           {efficiencyMode === 'lPer100km'
             ? 'Fuel efficiency (L / 100 km)'
             : 'Fuel efficiency (km / litre)'}
         </span>
-        <input bind:value={fuelEfficiency} type="number" min="0" step="0.1" />
+        <input
+          value={fuelEfficiency}
+          type="number"
+          min="0"
+          max={fuelEfficiencyLimit}
+          step="0.1"
+          aria-describedby={limitReached.fuelEfficiency ? 'fuel-efficiency-limit-message' : undefined}
+          on:input={handleFuelEfficiencyInput}
+        />
+        {#if limitReached.fuelEfficiency}
+          <small id="fuel-efficiency-limit-message" class="field-feedback">
+            {fuelEfficiencyLimitText}
+          </small>
+        {/if}
       </label>
 
       <label class="checkbox-row">
@@ -232,16 +320,16 @@
         </article>
 
         <article class="metric-card">
-          <p>Fuel cost per 100 km</p>
-          <strong>${currency(currentCase.costPer100Km)}</strong>
-          <span>Based on your selected vehicle efficiency</span>
+          <p>Fuel used</p>
+          <strong>{number(currentCase.totalLitres)} L</strong>
+          <span>{number(currentCase.costPer100Km)} dollars per 100 km</span>
         </article>
       </div>
 
       <section class="chart-card">
         <div class="panel-heading compact">
           <p class="eyebrow">Trip breakdown</p>
-          <h3>See the estimate at a glance</h3>
+          <h3>Quick cost split</h3>
         </div>
 
         <div class="chart" aria-label="Trip cost breakdown">
@@ -339,12 +427,12 @@
       </section>
 
       <section class="notes-card">
-        <h3>How this estimate works</h3>
+        <h3>How it works</h3>
         <ul>
           <li>Fuel needed is based on your trip distance and vehicle efficiency.</li>
           <li>Total fuel cost is the fuel required multiplied by your fuel price.</li>
-          <li>The chart shows a simple cost breakdown for the trip you entered.</li>
-          <li>The advanced section lets you explore an alternative scenario without changing your baseline result.</li>
+          <li>The chart shows a compact one-way versus total cost split.</li>
+          <li>Input limits keep the calculator within realistic day-to-day ranges.</li>
         </ul>
       </section>
     </section>
