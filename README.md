@@ -157,7 +157,7 @@ jobs:
         run: npm ci
 
       - name: Build app
-        run: BASE_PATH=/DrivingTravelCost npm run build
+        run: BASE_PATH=/driving-travel-cost npm run build
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
@@ -196,4 +196,4 @@ git push origin main
 
 After the workflow finishes, the app will be available at:
 
-`https://<your-user-name>.github.io/DrivingTravelCost/`
+`https://<your-user-name>.github.io/driving-travel-cost/`
