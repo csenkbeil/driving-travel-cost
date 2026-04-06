@@ -196,12 +196,6 @@
         tools stay tucked away until you need them.
       </p>
     </div>
-
-    <div class="trip-card trip-card--compact">
-      <p class="trip-card__eyebrow">Quick guide</p>
-      <strong>Best for everyday trips, road planning, and fuel budgeting.</strong>
-      <span>Values are capped to keep the calculator realistic and easy to use.</span>
-    </div>
   </section>
 
   <main class="layout">
