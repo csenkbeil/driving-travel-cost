@@ -53,6 +53,7 @@ Deploy the generated `dist/` folder to any static hosting provider.
 Build and run the app with Alpine-based Node and Nginx:
 
 ```bash
+npm run build
 docker build -t driving-travel-cost .
 docker run --rm -p 8080:80 driving-travel-cost
 ```
