@@ -48,6 +48,17 @@ npm run build
 
 Deploy the generated `dist/` folder to any static hosting provider.
 
+## Docker
+
+Build and run the app with Alpine-based Node and Nginx:
+
+```bash
+docker build -t driving-travel-cost .
+docker run --rm -p 8080:80 driving-travel-cost
+```
+
+Then open `http://localhost:8080`.
+
 ## Deploy to GitHub Pages
 
 This app can be deployed to GitHub Pages as a static Vite site.
