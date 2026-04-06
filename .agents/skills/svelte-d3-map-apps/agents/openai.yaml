@@ -1,0 +1,4 @@
+interface:
+  display_name: "Svelte D3 Map Apps"
+  short_description: "Svelte, D3, and mapping app delivery"
+  default_prompt: "Use $svelte-d3-map-apps to build or improve a Svelte data visualization or mapping interface."

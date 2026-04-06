@@ -1,0 +1,4 @@
+interface:
+  display_name: "Svelte Code Review"
+  short_description: "Review Svelte and SvelteKit codebases, including tests"
+  default_prompt: "Use $svelte-sveltekit-code-review to review this Svelte or SvelteKit codebase for code quality, security, unused variables, and test quality, then write the findings to doc/code_review.md."
