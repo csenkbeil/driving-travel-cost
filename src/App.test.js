@@ -1,20 +1,58 @@
 import { fireEvent, render, screen } from '@testing-library/svelte';
-import { describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import App from './App.svelte';
 
+function mockMatchMedia(matches = true) {
+  const listeners = new Set();
+
+  Object.defineProperty(window, 'matchMedia', {
+    writable: true,
+    value: vi.fn().mockImplementation(() => ({
+      matches,
+      media: '(prefers-color-scheme: dark)',
+      onchange: null,
+      addEventListener: (_event, listener) => listeners.add(listener),
+      removeEventListener: (_event, listener) => listeners.delete(listener)
+    }))
+  });
+}
+
 describe('App', () => {
+  beforeEach(() => {
+    localStorage.clear();
+    document.documentElement.removeAttribute('data-theme');
+    document.documentElement.style.colorScheme = '';
+    mockMatchMedia(true);
+  });
+
   it('renders a simple default calculator view with advanced tools hidden', () => {
     render(App);
 
+    expect(document.documentElement.dataset.theme).toBe('dark');
     expect(screen.getByText('Work out your driving cost in a few quick steps.')).toBeInTheDocument();
     expect(screen.getByText('Enter trip details')).toBeInTheDocument();
     expect(screen.getByText('Estimated return-trip fuel cost')).toBeInTheDocument();
     expect(screen.getByText('Trip breakdown')).toBeInTheDocument();
     expect(screen.getByText('Advanced what-if')).toBeInTheDocument();
+    expect(screen.getByRole('switch', { name: /switch to light mode/i })).toBeInTheDocument();
     expect(screen.queryByText('Fuel price what-if')).not.toBeInTheDocument();
     expect(screen.getAllByText('$63.55').length).toBeGreaterThan(0);
     expect(screen.getByText('30.6 L')).toBeInTheDocument();
     expect(screen.getAllByText('$15.81').length).toBeGreaterThan(0);
+  });
+
+  it('uses the browser default theme and lets the user toggle it', async () => {
+    mockMatchMedia(false);
+    render(App);
+
+    expect(document.documentElement.dataset.theme).toBe('light');
+    expect(screen.getByRole('switch', { name: /switch to dark mode/i })).toBeInTheDocument();
+
+    await fireEvent.click(screen.getByRole('switch', { name: /switch to dark mode/i }));
+
+    expect(document.documentElement.dataset.theme).toBe('dark');
+    expect(localStorage.getItem('driving-travel-cost-theme')).toBe('dark');
+    expect(screen.getByRole('switch', { name: /switch to light mode/i })).toBeInTheDocument();
   });
 
   it('updates the baseline estimate and reveals advanced what-if tools on demand', async () => {

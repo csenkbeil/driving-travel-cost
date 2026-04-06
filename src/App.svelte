@@ -1,4 +1,5 @@
 <script>
+  import { onMount } from 'svelte';
   import { format } from 'd3-format';
   import { scaleLinear } from 'd3-scale';
   import { buildChartData, buildWhatIfSummary, calculateTripCost } from './lib/costCalculator.js';
@@ -6,6 +7,7 @@
   const currency = format(',.2f');
   const number = format(',.1f');
   const multiplier = format('.2f');
+  const themeStorageKey = 'driving-travel-cost-theme';
 
   let distance = 201;
   let fuelPrice = 2.08;
@@ -23,11 +25,52 @@
   let whatIfSummary;
   let maxCost;
   let costScale;
+  let theme = 'dark';
+  let hasStoredThemePreference = false;
+
+  function applyTheme(nextTheme) {
+    theme = nextTheme;
+    if (typeof document !== 'undefined') {
+      document.documentElement.dataset.theme = nextTheme;
+      document.documentElement.style.colorScheme = nextTheme;
+    }
+  }
+
+  function toggleTheme() {
+    const nextTheme = theme === 'dark' ? 'light' : 'dark';
+    hasStoredThemePreference = true;
+    applyTheme(nextTheme);
+    localStorage.setItem(themeStorageKey, nextTheme);
+  }
 
   function resetWhatIfSliders() {
     fuelPriceMultiplier = 1;
     fuelEfficiencyMultiplier = 1;
   }
+
+  onMount(() => {
+    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+    const storedTheme = localStorage.getItem(themeStorageKey);
+
+    if (storedTheme === 'light' || storedTheme === 'dark') {
+      hasStoredThemePreference = true;
+      applyTheme(storedTheme);
+    } else {
+      applyTheme(mediaQuery.matches ? 'dark' : 'light');
+    }
+
+    const handleThemeChange = (event) => {
+      if (!hasStoredThemePreference) {
+        applyTheme(event.matches ? 'dark' : 'light');
+      }
+    };
+
+    mediaQuery.addEventListener('change', handleThemeChange);
+
+    return () => {
+      mediaQuery.removeEventListener('change', handleThemeChange);
+    };
+  });
 
   $: currentCase = calculateTripCost({
     distance,
@@ -64,7 +107,23 @@
 <div class="shell">
   <section class="hero">
     <div class="hero-copy">
-      <p class="eyebrow">Driving-cost planner</p>
+      <div class="hero-copy__topline">
+        <p class="eyebrow">Driving-cost planner</p>
+        <label class="theme-toggle" aria-label="Theme mode toggle">
+          <span>{theme === 'dark' ? 'Dark mode' : 'Light mode'}</span>
+          <button
+            type="button"
+            role="switch"
+            class:theme-toggle__switch--active={theme === 'dark'}
+            class="theme-toggle__switch"
+            aria-checked={theme === 'dark'}
+            aria-label={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
+            on:click={toggleTheme}
+          >
+            <span class="theme-toggle__thumb"></span>
+          </button>
+        </label>
+      </div>
       <h1>Work out your driving cost in a few quick steps.</h1>
       <p class="intro">
         Enter your trip distance, fuel price, and vehicle efficiency to get one clear estimate fast.
