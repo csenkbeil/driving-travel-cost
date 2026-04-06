@@ -16,8 +16,8 @@
   const multiplier = format('.2f');
   const themeStorageKey = 'driving-travel-cost-theme';
 
-  let distance = 201;
-  let fuelPrice = 2.08;
+  let distance = 20;
+  let fuelPrice = 2.20;
   let efficiencyMode = 'lPer100km';
   let fuelEfficiency = 7.6;
   let includeReturnTrip = true;
@@ -203,14 +203,11 @@
       <div class="panel-heading">
         <p class="eyebrow">Trip inputs</p>
         <h2>Enter trip details</h2>
-        <p>
-          Start with the basics and the calculator will update immediately as you type.
-        </p>
       </div>
 
       <div class="form-grid">
         <label class:field-capped={limitReached.distance}>
-          <span>Driving distance (km)</span>
+          <span>One-way driving distance (km)</span>
           <input
             value={distance}
             type="number"
@@ -248,7 +245,7 @@
 
       <div class="panel-heading compact">
         <h3>Vehicle efficiency</h3>
-        <p>Choose whichever fuel-efficiency unit you already know.</p>
+        <p>Choose the fuel-efficiency unit.</p>
       </div>
 
       <div class="toggle-row" role="radiogroup" aria-label="Fuel efficiency unit">
